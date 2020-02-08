@@ -34,7 +34,7 @@ endfunction
 
 " markdown test for front matter end
 function! s:test_header_end_md(line, i)
-  if a:i > 0 
+  if a:i > 0
     let pos = matchstrpos(a:line, "^\s*---")
     return pos[1]
   endif
@@ -45,7 +45,7 @@ endfunction
 function! s:test_header_end_wiki(line, i)
   " return false for all lines that start with % character
   let pos = matchstrpos(a:line,"^\s*%")
-  if pos[1] > -1 
+  if pos[1] > -1
     return -1
   endif
   " first line which is not tag should be selected
@@ -83,7 +83,7 @@ function! zettel#vimwiki#find_header_end(filename)
   let i = 0
   for line in lines
     let res = s:test_header_end(line, i)
-    if res > -1 
+    if res > -1
       " call append(i, "This is the end")
       return i
     endif
@@ -111,15 +111,28 @@ endfunction
 
 
 " title and date to a new zettel note
-function! zettel#vimwiki#template(title, date)
+function! zettel#vimwiki#template(title, date, link)
   call <sid>add_line(s:header_delimiter)
-  call <sid>add_to_header("date", a:date)
+  " call <sid>add_to_header("date", a:date)
+  call <sid>add_line(printf("%s: %s", "Backlink", a:link))
   call <sid>add_to_header("title", a:title)
   call <sid>add_line(s:header_delimiter)
 endfunction
 
 function! zettel#vimwiki#new_zettel_name()
-  return strftime(g:zettel_format)
+  let name = strftime(g:zettel_format)
+  let link_info = vimwiki#base#resolve_link(name)
+  " detect if the wiki file exists
+  let wiki_not_exists = empty(glob(link_info.filename))
+  " if file already exists add to the time until a unique file is created.
+  let i = 1
+  while !wiki_not_exists
+     let name = strftime(g:zettel_format, localtime()+60*i)
+     let link_info = vimwiki#base#resolve_link(name)
+     let wiki_not_exists = empty(glob(link_info.filename))
+     let i = i + 1
+  endwhile
+  return name
 endfunction
 
 " the optional argument is the wiki number
@@ -156,7 +169,7 @@ function! zettel#vimwiki#format_search_link(file, title)
 endfunction
 
 " This function is executed when the page referenced by the inserted link
-" doesn't contain  title. The cursor is placed at the position where title 
+" doesn't contain  title. The cursor is placed at the position where title
 " should start, and insert mode is started
 function! zettel#vimwiki#insert_mode_in_title()
   execute "normal! " .s:insert_mode_title_format | :startinsert
@@ -167,12 +180,12 @@ function! zettel#vimwiki#get_title(filename)
   let title = ""
   let lsource = readfile(filename)
   " this code comes from vimwiki's html export plugin
-  for line in lsource 
+  for line in lsource
     if line =~# '^\s*%\=title'
       let title = matchstr(line, '^\s*%\=title:\=\s\zs.*')
       return title
     endif
-  endfor 
+  endfor
   return ""
 endfunction
 
@@ -184,15 +197,18 @@ function! zettel#vimwiki#create(...)
   let format = zettel#vimwiki#new_zettel_name()
   let date_format = strftime("%Y-%m-%d %H:%M")
   echom("new zettel: ". format)
+  " get the current file link
+  let file_name = expand('%')
+  let link = zettel#vimwiki#get_link(file_name)
   let link_info = vimwiki#base#resolve_link(format)
   " detect if the wiki file exists
-  let wiki_not_exists = empty(glob(link_info.filename)) 
-  " let vimwiki to open the wiki file. this is necessary  
+  let wiki_not_exists = empty(glob(link_info.filename))
+  " let vimwiki to open the wiki file. this is necessary
   " to support the vimwiki navigation commands.
   call vimwiki#base#open_link(':e ', format)
   " add basic template to the new file
   if wiki_not_exists
-    call zettel#vimwiki#template(a:1, date_format)
+    call zettel#vimwiki#template(a:1, date_format, link)
     return format
   endif
   return 0
@@ -258,7 +274,7 @@ function! zettel#vimwiki#zettel_capture(wnum,...)
   " delete contents of the captured file
   execute "normal! ggdG"
   " replace it with a address of the zettel file
-  execute "normal! i" . newfile 
+  execute "normal! i" . newfile
   execute ":w"
   " open the new zettel
   execute ":e " . newfile
