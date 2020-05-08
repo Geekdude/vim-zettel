@@ -121,6 +121,7 @@ endfunction
 
 function! zettel#vimwiki#new_zettel_name()
   let name = strftime(g:zettel_format)
+  let name = "/z/" . name
   let link_info = vimwiki#base#resolve_link(name)
   " detect if the wiki file exists
   let wiki_not_exists = empty(glob(link_info.filename))
@@ -149,6 +150,7 @@ endfunction
 function! zettel#vimwiki#get_link(filename)
   let title =zettel#vimwiki#get_title(a:filename)
   let wikiname = fnamemodify(a:filename, ":t:r")
+  let wikiname = "/z/" . wikiname
   let link= zettel#vimwiki#format_link(wikiname, title)
   return link
 endfunction
@@ -248,7 +250,7 @@ function! zettel#vimwiki#zettel_new_selected()
   let title = <sid>get_visual_selection()
   " replace the visually selected text with a link to the new zettel
   " \\%V.*\\%V. should select the whole visual selection
-  execute "normal! :'<,'>s/\\%V.*\\%V./" . zettel#vimwiki#format_link( name, "\\\\0") ."\<cr>\<C-o>"
+  execute "normal! :'<,'>s@\\%V.*\\%V.@" . zettel#vimwiki#format_link( name, "\\\\0") ."\<cr>\<C-o>"
   call zettel#vimwiki#zettel_new(title)
 endfunction
 
