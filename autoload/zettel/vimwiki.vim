@@ -219,7 +219,7 @@ endfunction
 function! zettel#vimwiki#zettel_new(...)
   let filename = zettel#vimwiki#create(a:1)
   " the wiki file already exists
-  if filename == 0
+  if empty(filename)
     return 0
   endif
   " save the new wiki file
